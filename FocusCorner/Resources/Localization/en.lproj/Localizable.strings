@@ -5,22 +5,18 @@
 
 // MARK: - Onboarding
 
-"onboarding.page1.title" = "Discover Cozy Workspaces";
+"onboarding.page1.title"       = "Discover Cozy Workspaces";
 "onboarding.page1.description" = "Explore aesthetic cafes and inspiring places designed for focus and productivity.";
 
-"onboarding.page2.title" = "Find Your Perfect Atmosphere";
+"onboarding.page2.title"       = "Find Your Perfect Atmosphere";
 "onboarding.page2.description" = "Filter places by WiFi quality, noise level, comfort, and workspace vibe.";
 
-"onboarding.page3.title" = "Join the Focus Community";
+"onboarding.page3.title"       = "Join the Focus Community";
 "onboarding.page3.description" = "Save favorite spots, share reviews, and discover productive spaces together.";
 
-// MARK: - Onboarding Actions
-
-"onboarding.action.skip" = "Skip";
-"onboarding.action.next" = "Next";
+"onboarding.action.skip"       = "Skip";
+"onboarding.action.next"       = "Next";
 "onboarding.action.getStarted" = "Get Started";
-
-// MARK: - Accessibility
 
 "onboarding.a11y.pageIndicator" = "Page %1$d of %2$d";
 
@@ -29,48 +25,92 @@
 "splash.appName" = "Focus Corner";
 "splash.tagline" = "Your cozy corner for focus.";
 
-// MARK: - Authentication (placeholder)
+// MARK: - Authentication — mode picker
 
-"auth.title" = "Welcome Back";
-"auth.subtitle" = "Sign in to discover cafes made for focus.";
-"auth.continue" = "Continue";
-"auth.placeholderNotice" = "Authentication coming soon — tap Continue to explore.";
+"auth.mode.login"    = "Sign In";
+"auth.mode.register" = "Create Account";
+
+// MARK: - Authentication — headers
+
+"auth.login.title"      = "Welcome Back";
+"auth.login.subtitle"   = "Sign in to discover cafes made for focus.";
+"auth.register.title"   = "Create Account";
+"auth.register.subtitle" = "Join the Focus Corner community today.";
+
+// MARK: - Authentication — fields
+
+"auth.field.email"           = "Email address";
+"auth.field.password"        = "Password";
+"auth.field.confirmPassword" = "Confirm password";
+
+// MARK: - Authentication — buttons
+
+"auth.button.login"    = "Sign In";
+"auth.button.register" = "Create Account";
+
+// MARK: - Authentication — errors
+
+"auth.error.title.default" = "Sign In Failed";
+"auth.error.title.network" = "Connection Error";
+
+"auth.error.invalidEmail"       = "Please enter a valid email address.";
+"auth.error.weakPassword"       = "Password must be at least 6 characters.";
+"auth.error.wrongPassword"      = "Incorrect password. Please try again.";
+"auth.error.userNotFound"       = "No account found with this email. Please register first.";
+"auth.error.emailAlreadyInUse"  = "An account with this email already exists. Please sign in.";
+"auth.error.passwordMismatch"   = "Passwords do not match. Please try again.";
+"auth.error.networkError"       = "Please check your internet connection and try again.";
+"auth.error.requiresRecentLogin" = "For security, please sign out and sign in again before deleting your account.";
+"auth.error.unknown"            = "Something went wrong. Please try again.";
 
 // MARK: - Tabs
 
-"tabs.home" = "Home";
-"tabs.map" = "Map";
+"tabs.home"     = "Home";
+"tabs.map"      = "Map";
 "tabs.addPlace" = "Add";
-"tabs.saved" = "Saved";
-"tabs.profile" = "Profile";
+"tabs.saved"    = "Saved";
+"tabs.profile"  = "Profile";
 
 // MARK: - Home
 
-"home.title" = "Good morning";
-"home.subtitle" = "Discover your next favorite spot to focus today.";
+"home.title"       = "Good morning";
+"home.subtitle"    = "Discover your next favorite spot to focus today.";
 "home.placeholder" = "Curated cafes and workspaces will appear here.";
 
 // MARK: - Map
 
-"map.title" = "Nearby Corners";
-"map.subtitle" = "Browse cozy workspaces around you.";
+"map.title"       = "Nearby Corners";
+"map.subtitle"    = "Browse cozy workspaces around you.";
 "map.placeholder" = "An interactive map will live here soon.";
 
 // MARK: - Add Place
 
-"addPlace.title" = "Add a Place";
-"addPlace.subtitle" = "Help the community find their next favorite corner.";
+"addPlace.title"       = "Add a Place";
+"addPlace.subtitle"    = "Help the community find their next favorite corner.";
 "addPlace.placeholder" = "The submission form will appear here.";
 
 // MARK: - Saved
 
-"saved.title" = "Saved Spots";
-"saved.subtitle" = "Your collection of favorite places to focus.";
+"saved.title"       = "Saved Spots";
+"saved.subtitle"    = "Your collection of favorite places to focus.";
 "saved.placeholder" = "Spots you save will be gathered here.";
 
 // MARK: - Profile
 
-"profile.title" = "Your Profile";
-"profile.subtitle" = "Manage your account and preferences.";
+"profile.title"       = "Your Profile";
+"profile.subtitle"    = "Manage your account and preferences.";
 "profile.placeholder" = "Profile, preferences and stats will appear here.";
-"profile.signOut" = "Sign Out";
+"profile.memberLabel" = "Focus Corner member";
+
+"profile.signOut"              = "Sign Out";
+"profile.signOut.confirmTitle" = "Sign out of Focus Corner?";
+
+"profile.deleteAccount"          = "Delete Account";
+"profile.deletingAccount"        = "Deleting…";
+"profile.delete.confirmTitle"    = "Delete your account?";
+"profile.delete.confirmMessage"  = "This will permanently delete your account and all your data. This action cannot be undone.";
+
+// MARK: - Common
+
+"common.cancel" = "Cancel";
+"common.ok"     = "OK";

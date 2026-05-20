@@ -2,13 +2,14 @@
 //  AppCoordinator.swift
 //  FocusCorner
 //
-//  Owns the top-level app flow and the (currently simulated) authentication
-//  state. Designed to be swapped for a real auth service / Firebase later
-//  without touching the views that observe it.
+//  Owns the top-level app flow. Auth state is driven by a Firebase
+//  auth-state listener so navigation updates automatically on sign-in,
+//  sign-out, and session restore — no manual flag flipping required.
 //
 
 import SwiftUI
 import Observation
+import FirebaseAuth
 
 @MainActor
 @Observable
@@ -17,58 +18,84 @@ final class AppCoordinator {
     // MARK: - Flow
 
     private(set) var flow: AppFlow = .splash
+    private(set) var currentUser: User? = nil
 
-    // MARK: - Persisted state
+    // MARK: - Persisted
 
-    /// Mirrors the same key used by the onboarding flow.
     @ObservationIgnored
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
 
-    /// Simulated authentication. Replace with Firebase auth state later.
+    // MARK: - Listener
+
     @ObservationIgnored
-    @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
+    private var authListenerHandle: AuthStateDidChangeListenerHandle?
 
-    // MARK: - Splash → next stage
+    // MARK: - Init / deinit
 
-    /// Called by SplashView once its intro animation finishes. Decides what
-    /// the user should see next based on persisted state.
+    init() {
+        startAuthListener()
+    }
+
+    deinit {
+        if let handle = authListenerHandle {
+            Auth.auth().removeStateDidChangeListener(handle)
+        }
+    }
+
+    // MARK: - Splash
+
+    /// Called by SplashView when its intro animation finishes.
+    /// By this point the Firebase listener has already fired with the
+    /// persisted session (or nil), so `currentUser` is already accurate.
     func handleSplashFinished() {
-        advanceToInitialDestination()
+        if !hasCompletedOnboarding {
+            transition(to: .onboarding)
+        } else if currentUser != nil {
+            transition(to: .main)
+        } else {
+            transition(to: .authentication)
+        }
     }
 
     // MARK: - Onboarding
 
     func completeOnboarding() {
         hasCompletedOnboarding = true
-        transition(to: isAuthenticated ? .main : .authentication)
+        transition(to: currentUser != nil ? .main : .authentication)
     }
 
-    // MARK: - Authentication (simulated)
-
-    /// Stand-in for a real sign-in / sign-up call. Flips the persisted flag
-    /// and moves the user into the main tab experience.
-    func signInSimulated() {
-        isAuthenticated = true
-        transition(to: .main)
-    }
+    // MARK: - Auth
 
     func signOut() {
-        isAuthenticated = false
-        transition(to: .authentication)
+        do {
+            try AuthService.shared.signOut()
+            // Listener fires → handleAuthStateChange → transitions to .authentication
+        } catch {
+            // signOut can only fail if there's no signed-in user — safe to ignore
+        }
     }
 
     // MARK: - Private
 
-    private func advanceToInitialDestination() {
-        let next: AppFlow
-        if !hasCompletedOnboarding {
-            next = .onboarding
-        } else if !isAuthenticated {
-            next = .authentication
-        } else {
-            next = .main
+    private func startAuthListener() {
+        authListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.currentUser = user
+                // Only react to auth changes after the splash screen clears.
+                if self.flow != .splash {
+                    self.handleAuthStateChange(user: user)
+                }
+            }
         }
-        transition(to: next)
+    }
+
+    private func handleAuthStateChange(user: User?) {
+        if user != nil {
+            transition(to: .main)
+        } else {
+            transition(to: hasCompletedOnboarding ? .authentication : .onboarding)
+        }
     }
 
     private func transition(to next: AppFlow) {

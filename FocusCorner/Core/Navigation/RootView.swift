@@ -3,7 +3,8 @@
 //  FocusCorner
 //
 //  Renders the correct top-level stage of the app based on AppCoordinator.flow.
-//  Transitions between stages are crossfaded for a calm, premium feel.
+//  Navigation after sign-in / sign-out is driven automatically by
+//  AppCoordinator's Firebase auth-state listener.
 //
 
 import SwiftUI
@@ -28,7 +29,9 @@ struct RootView: View {
                 .transition(.opacity)
 
             case .authentication:
-                AuthView(onAuthenticated: coordinator.signInSimulated)
+                // Navigation after auth succeeds is driven by the
+                // Firebase auth-state listener in AppCoordinator.
+                AuthView()
                     .transition(.opacity)
 
             case .main:

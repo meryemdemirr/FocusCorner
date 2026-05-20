@@ -1,29 +1,44 @@
 //
-//  AuthViewModel.swift
+//  AuthViewModel.swift  →  AuthStateViewModel
 //  FocusCorner
 //
-//  Placeholder authentication view model. No real auth logic — exposes a
-//  single `continue` action that the coordinator handles. This is the seam
-//  where Firebase Auth will be wired in later.
+//  Reactive view-model that reflects the current Firebase user session.
+//  Feature screens (e.g. ProfileView) use this to read user info without
+//  importing FirebaseAuth directly.
 //
 
 import SwiftUI
 import Observation
+import FirebaseAuth
 
 @MainActor
 @Observable
-final class AuthViewModel {
+final class AuthStateViewModel {
 
-    var isWorking: Bool = false
+    // MARK: - Published user state
 
-    /// Pretend the user signed in successfully. Coordinator handles the
-    /// real transition.
-    func handleContinue(onSuccess: @escaping () -> Void) async {
-        guard !isWorking else { return }
-        isWorking = true
-        // Tiny artificial delay so the button transition feels intentional.
-        try? await Task.sleep(for: .milliseconds(450))
-        isWorking = false
-        onSuccess()
+    var currentUserEmail: String? = Auth.auth().currentUser?.email
+    var currentUserUID: String?   = Auth.auth().currentUser?.uid
+    var isAuthenticated: Bool     = Auth.auth().currentUser != nil
+
+    // MARK: - Listener
+
+    @ObservationIgnored
+    private var listenerHandle: AuthStateDidChangeListenerHandle?
+
+    init() {
+        listenerHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            Task { @MainActor [weak self] in
+                self?.currentUserEmail = user?.email
+                self?.currentUserUID   = user?.uid
+                self?.isAuthenticated  = user != nil
+            }
+        }
+    }
+
+    deinit {
+        if let handle = listenerHandle {
+            Auth.auth().removeStateDidChangeListener(handle)
+        }
     }
 }
