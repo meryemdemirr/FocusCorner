@@ -8,17 +8,6 @@ import MapKit
 import CoreLocation
 import Observation
 
-// MARK: - Cafe place model
-
-struct CafePlace: Identifiable {
-    let id = UUID()
-    let mapItem: MKMapItem
-
-    var name: String { mapItem.name ?? "Cafe" }
-    var coordinate: CLLocationCoordinate2D { mapItem.placemark.coordinate }
-    var street: String? { mapItem.placemark.thoroughfare }
-}
-
 // MARK: - CLLocationManager bridge
 // NSObject subclass required by CLLocationManagerDelegate;
 // kept separate so MapViewModel can stay @Observable.
@@ -51,30 +40,38 @@ final class MapViewModel {
 
     // Incrementing this triggers the view to read `centerCoordinate` and update its camera.
     private(set) var cameraUpdateID: Int = 0
-    var places: [CafePlace] = []
+    var places: [PlaceSearchResult] = []
+    var selectedPlace: PlaceSearchResult?
     var isLoading = false
     var hasUserLocation = false
+    var locationStatusMessage = "Location helps Focus Corner find real nearby cafes and work-friendly places."
+    var searchText = ""
+    var searchSuggestions: [PlaceSearchSuggestion] = []
+    var isSearchFocused = false
 
     // MARK: - Non-observed coordinate (read by view after cameraUpdateID fires)
 
     @ObservationIgnored private(set) var centerCoordinate = MapViewModel.ankaraCoordinate
+    @ObservationIgnored private var userCoordinate: CLLocationCoordinate2D?
 
     // MARK: - Constants
 
     static let ankaraCoordinate = CLLocationCoordinate2D(latitude: 39.9334, longitude: 32.8597)
-    static let displaySpan = MKCoordinateSpan(latitudeDelta: 0.035, longitudeDelta: 0.035)
-    private static let searchSpan = MKCoordinateSpan(latitudeDelta: 0.06, longitudeDelta: 0.06)
+    // Tighter zoom so individual cafe pins are clearly visible (≈1.2 km view)
+    static let displaySpan = MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012)
 
     // MARK: - Private
 
     @ObservationIgnored private let locationManager = CLLocationManager()
     @ObservationIgnored private let bridge = LocationBridge()
+    @ObservationIgnored private let searchService = PlaceSearchService()
     @ObservationIgnored private var searchTask: Task<Void, Never>?
 
     // MARK: - Init
 
     init() {
         setupBridge()
+        setupSearchService()
         locationManager.delegate = bridge
         locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
     }
@@ -103,6 +100,71 @@ final class MapViewModel {
         locationManager.requestLocation()
     }
 
+    func selectMapPlace(_ place: PlaceSearchResult) {
+        selectedPlace = place
+    }
+
+    func distanceText(for place: PlaceSearchResult) -> String {
+        guard let userCoordinate else { return "Distance unavailable" }
+        let userLocation = CLLocation(latitude: userCoordinate.latitude, longitude: userCoordinate.longitude)
+        let placeLocation = CLLocation(latitude: place.coordinate.latitude, longitude: place.coordinate.longitude)
+        let kilometers = userLocation.distance(from: placeLocation) / 1_000
+
+        if kilometers < 1 {
+            return "\(Int(kilometers * 1_000)) m away"
+        }
+        return String(format: "%.1f km away", kilometers)
+    }
+
+    func updateSearchText(_ text: String) {
+        searchText = text
+        searchService.updateQuery(text)
+
+        searchTask?.cancel()
+        searchTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(120))
+            guard !Task.isCancelled else { return }
+            await self?.syncSearchState()
+        }
+    }
+
+    func selectSuggestion(_ suggestion: PlaceSearchSuggestion) {
+        searchTask?.cancel()
+        searchTask = Task { [weak self] in
+            guard let self else { return }
+            isLoading = true
+            defer { isLoading = false }
+
+            guard let result = await searchService.select(suggestion) else {
+                await syncSearchState()
+                return
+            }
+
+            selectPlace(result)
+            await loadNearbyCafes(near: result.coordinate)
+            await syncSearchState()
+        }
+    }
+
+    func submitSearch() {
+        let text = searchText
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+
+        searchTask?.cancel()
+        searchTask = Task { [weak self] in
+            guard let self else { return }
+            isLoading = true
+            defer { isLoading = false }
+
+            let results = await searchService.search(text: text)
+            if let result = results.first {
+                selectPlace(result)
+                await loadNearbyCafes(near: result.coordinate)
+            }
+            await syncSearchState()
+        }
+    }
+
     // MARK: - Bridge setup
 
     private func setupBridge() {
@@ -118,13 +180,25 @@ final class MapViewModel {
         }
     }
 
+    private func setupSearchService() {
+        searchService.onSuggestionsChanged = { [weak self] suggestions in
+            self?.searchSuggestions = suggestions
+        }
+        searchService.onResultsChanged = { [weak self] results in
+            guard !results.isEmpty else { return }
+            self?.places = results
+        }
+    }
+
     // MARK: - Handlers
 
     private func handleAuthChange(_ status: CLAuthorizationStatus) {
         switch status {
         case .authorizedWhenInUse, .authorizedAlways:
+            locationStatusMessage = "Showing real cafes near your current location."
             locationManager.requestLocation()
         case .denied, .restricted:
+            locationStatusMessage = "Location is off. Showing real cafes around Ankara instead."
             useFallback()
         default:
             break
@@ -133,6 +207,8 @@ final class MapViewModel {
 
     private func centerAndSearch(location: CLLocation) {
         hasUserLocation = true
+        userCoordinate = location.coordinate
+        locationStatusMessage = "Showing real cafes near your current location."
         centerCoordinate = location.coordinate
         cameraUpdateID += 1
         searchNearby(coordinate: location.coordinate)
@@ -140,9 +216,31 @@ final class MapViewModel {
 
     private func useFallback() {
         hasUserLocation = false
+        userCoordinate = nil
+        locationStatusMessage = "Location is off. Showing real cafes around Ankara instead."
         centerCoordinate = Self.ankaraCoordinate
         cameraUpdateID += 1
         searchNearby(coordinate: Self.ankaraCoordinate)
+    }
+
+    private func selectPlace(_ place: PlaceSearchResult) {
+        selectedPlace = place
+        searchText = place.name
+        searchSuggestions = []
+        centerCoordinate = place.coordinate
+        cameraUpdateID += 1
+    }
+
+    private func syncSearchState() async {
+        searchSuggestions = searchService.suggestions
+        if !searchService.results.isEmpty {
+            places = searchService.results
+        }
+    }
+
+    private func loadNearbyCafes(near coordinate: CLLocationCoordinate2D) async {
+        let results = await searchService.searchNearbyCafes(near: coordinate)
+        places = results
     }
 
     // MARK: - MKLocalSearch
@@ -151,16 +249,11 @@ final class MapViewModel {
         searchTask?.cancel()
         isLoading = true
 
-        searchTask = Task {
-            let request = MKLocalSearch.Request()
-            request.naturalLanguageQuery = "cafe coffee"
-            request.resultTypes = .pointOfInterest
-            request.region = MKCoordinateRegion(center: coordinate, span: Self.searchSpan)
-
-            if let response = try? await MKLocalSearch(request: request).start() {
-                guard !Task.isCancelled else { return }
-                places = response.mapItems.prefix(12).map { CafePlace(mapItem: $0) }
-            }
+        searchTask = Task { [weak self] in
+            guard let self else { return }
+            let results = await searchService.searchNearbyCafes(near: coordinate)
+            guard !Task.isCancelled else { return }
+            places = results
             isLoading = false
         }
     }

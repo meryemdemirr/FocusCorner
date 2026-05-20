@@ -20,6 +20,9 @@ struct MainTabView: View {
                 .padding(.bottom, AppSpacing.xs)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
         }
+        .onAppear {
+            PlaceStore.shared.startListening()
+        }
     }
 
     // MARK: - Tab content

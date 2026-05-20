@@ -67,6 +67,7 @@ final class AppCoordinator {
     // MARK: - Auth
 
     func signOut() {
+        PlaceStore.shared.stopListening()
         do {
             try AuthService.shared.signOut()
             // Listener fires → handleAuthStateChange → transitions to .authentication

@@ -1,14 +1,12 @@
 //
 //  ProfileView.swift
 //  FocusCorner
-//
 
 import SwiftUI
 
 struct ProfileView: View {
 
     @State private var viewModel = ProfileViewModel()
-    @State private var authState = AuthStateViewModel()
     @Environment(AppCoordinator.self) private var coordinator
 
     @State private var hasAppeared = false
@@ -16,6 +14,7 @@ struct ProfileView: View {
     @State private var showDeleteConfirm = false
     @State private var isDeletingAccount = false
     @State private var deleteError: AuthError? = nil
+    @State private var selectedPlace: CommunityPlace? = nil
 
     var body: some View {
         ZStack {
@@ -26,6 +25,9 @@ struct ProfileView: View {
                 VStack(alignment: .leading, spacing: AppSpacing.xl) {
                     headerRow
                     avatarSection
+                    if !viewModel.contributions.isEmpty {
+                        contributionsSection
+                    }
                     settingsSection
                     accountSection
                 }
@@ -41,7 +43,9 @@ struct ProfileView: View {
                 hasAppeared = true
             }
         }
-        // Sign-out confirmation
+        .sheet(item: $selectedPlace) { place in
+            PlaceDetailView(place: place)
+        }
         .confirmationDialog(
             Text(L10n.Profile.signOutConfirmTitle),
             isPresented: $showSignOutConfirm,
@@ -52,7 +56,6 @@ struct ProfileView: View {
             }
             Button(L10n.Common.cancel, role: .cancel) {}
         }
-        // Delete account confirmation
         .confirmationDialog(
             Text(L10n.Profile.deleteConfirmTitle),
             isPresented: $showDeleteConfirm,
@@ -65,7 +68,6 @@ struct ProfileView: View {
         } message: {
             Text(L10n.Profile.deleteConfirmMessage)
         }
-        // Delete error alert
         .alert(
             deleteError?.alertTitle ?? "",
             isPresented: Binding(
@@ -103,25 +105,22 @@ struct ProfileView: View {
         HStack(spacing: AppSpacing.lg) {
             avatarCircle
             VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                Text(authState.currentUserEmail ?? "—")
+                Text(viewModel.currentUserEmail ?? "—")
                     .font(AppTypography.button)
                     .foregroundStyle(AppColors.textPrimary)
                     .lineLimit(1)
                 Text(L10n.Profile.memberLabel)
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
+                HStack(spacing: AppSpacing.sm) {
+                    statBadge(count: viewModel.contributions.count, label: "places added")
+                    statBadge(count: viewModel.savedPlaces.count, label: "saved")
+                }
             }
             Spacer()
         }
         .padding(AppSpacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                .fill(AppColors.beigeSurface.opacity(0.85))
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                        .stroke(AppColors.warmSand.opacity(0.5), lineWidth: 1)
-                )
-        )
+        .background(cardBackground)
         .shadow(color: AppColors.coffeeBrown.opacity(0.05), radius: 14, x: 0, y: 6)
         .opacity(hasAppeared ? 1 : 0)
         .offset(y: hasAppeared ? 0 : 14)
@@ -140,39 +139,135 @@ struct ProfileView: View {
     }
 
     private var initials: String {
-        guard let email = authState.currentUserEmail,
+        guard let email = viewModel.currentUserEmail,
               let first = email.first else { return "?" }
         return String(first).uppercased()
+    }
+
+    private func statBadge(count: Int, label: String) -> some View {
+        HStack(spacing: 3) {
+            Text("\(count)")
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundStyle(AppColors.coffeeBrown)
+            Text(label)
+                .font(.system(size: 11, design: .rounded))
+                .foregroundStyle(AppColors.textSecondary)
+        }
+        .padding(.horizontal, AppSpacing.xs)
+        .padding(.vertical, 3)
+        .background(Capsule().fill(AppColors.warmSand.opacity(0.55)))
+    }
+
+    // MARK: - Contributions section
+
+    private var contributionsSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            Text("My Contributions")
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .foregroundStyle(AppColors.textPrimary)
+
+            VStack(spacing: 0) {
+                ForEach(Array(viewModel.contributions.enumerated()), id: \.element.id) { index, place in
+                    contributionRow(place, index: index)
+                        .contentShape(Rectangle())
+                        .onTapGesture { selectedPlace = place }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                viewModel.deleteContribution(place)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+
+                    if index < viewModel.contributions.count - 1 {
+                        Divider()
+                            .background(AppColors.warmSand.opacity(0.5))
+                            .padding(.leading, 68)
+                    }
+                }
+            }
+            .background(cardBackground)
+            .shadow(color: AppColors.coffeeBrown.opacity(0.05), radius: 14, x: 0, y: 6)
+        }
+        .opacity(hasAppeared ? 1 : 0)
+        .offset(y: hasAppeared ? 0 : 16)
+        .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.14), value: hasAppeared)
+    }
+
+    private func contributionRow(_ place: CommunityPlace, index: Int) -> some View {
+        HStack(spacing: AppSpacing.md) {
+            Group {
+                if let urlString = place.imageURLs.first, let url = URL(string: urlString) {
+                    AsyncImage(url: url) { phase in
+                        if case .success(let img) = phase {
+                            img.resizable().scaledToFill()
+                        } else {
+                            contributionGradient(index: index)
+                        }
+                    }
+                } else {
+                    contributionGradient(index: index)
+                }
+            }
+            .frame(width: 44, height: 44)
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous))
+            .overlay {
+                if place.imageURLs.isEmpty {
+                    Image(systemName: "cup.and.saucer.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(place.name)
+                    .font(AppTypography.button)
+                    .foregroundStyle(AppColors.textPrimary)
+                    .lineLimit(1)
+                Text(place.locationLabel.isEmpty ? (place.vibeTags.first ?? "Your place") : place.locationLabel)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textSecondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(AppColors.textSecondary.opacity(0.4))
+        }
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.vertical, AppSpacing.sm + 2)
+    }
+
+    private func contributionGradient(index: Int) -> some View {
+        LinearGradient(
+            colors: [
+                index.isMultiple(of: 2) ? AppColors.caramel : AppColors.lightCaramel,
+                AppColors.coffeeBrown
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 
     // MARK: - Settings section
 
     private var settingsSection: some View {
         VStack(spacing: 0) {
-            settingsRow(icon: "bell.fill", iconColor: .orange.opacity(0.8),
-                        label: "Notifications")
+            settingsRow(icon: "bell.fill", iconColor: .orange.opacity(0.8), label: "Notifications")
             rowDivider
-            settingsRow(icon: "moon.fill", iconColor: .indigo.opacity(0.7),
-                        label: "Appearance")
+            settingsRow(icon: "moon.fill", iconColor: .indigo.opacity(0.7), label: "Appearance")
             rowDivider
-            settingsRow(icon: "questionmark.circle.fill", iconColor: .blue.opacity(0.6),
-                        label: "Help & Support")
+            settingsRow(icon: "questionmark.circle.fill", iconColor: .blue.opacity(0.6), label: "Help & Support")
             rowDivider
-            settingsRow(icon: "info.circle.fill", iconColor: AppColors.coffeeBrown,
-                        label: "About FocusCorner")
+            settingsRow(icon: "info.circle.fill", iconColor: AppColors.coffeeBrown, label: "About FocusCorner")
         }
-        .background(
-            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                .fill(AppColors.beigeSurface.opacity(0.85))
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                        .stroke(AppColors.warmSand.opacity(0.5), lineWidth: 1)
-                )
-        )
+        .background(cardBackground)
         .shadow(color: AppColors.coffeeBrown.opacity(0.05), radius: 14, x: 0, y: 6)
         .opacity(hasAppeared ? 1 : 0)
         .offset(y: hasAppeared ? 0 : 18)
-        .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.16), value: hasAppeared)
+        .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.18), value: hasAppeared)
     }
 
     private var rowDivider: some View {
@@ -213,7 +308,7 @@ struct ProfileView: View {
         }
         .opacity(hasAppeared ? 1 : 0)
         .offset(y: hasAppeared ? 0 : 22)
-        .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.22), value: hasAppeared)
+        .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.24), value: hasAppeared)
     }
 
     private var signOutButton: some View {
@@ -230,14 +325,7 @@ struct ProfileView: View {
             .foregroundStyle(AppColors.coffeeBrown)
             .padding(.horizontal, AppSpacing.md)
             .padding(.vertical, AppSpacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                    .fill(AppColors.beigeSurface.opacity(0.85))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                            .stroke(AppColors.warmSand.opacity(0.5), lineWidth: 1)
-                    )
-            )
+            .background(cardBackground)
             .shadow(color: AppColors.coffeeBrown.opacity(0.05), radius: 10, x: 0, y: 4)
         }
         .buttonStyle(.plain)
@@ -295,13 +383,23 @@ struct ProfileView: View {
         .accessibilityHidden(true)
     }
 
+    // MARK: - Helpers
+
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+            .fill(AppColors.beigeSurface.opacity(0.85))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                    .stroke(AppColors.warmSand.opacity(0.5), lineWidth: 1)
+            )
+    }
+
     // MARK: - Actions
 
     private func handleDeleteAccount() async {
         isDeletingAccount = true
         do {
             try await AuthService.shared.deleteAccount()
-            // Firebase listener fires → coordinator transitions to .authentication
         } catch {
             deleteError = AuthService.shared.mapError(error)
         }

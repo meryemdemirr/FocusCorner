@@ -1,9 +1,6 @@
 //
 //  SavedViewModel.swift
 //  FocusCorner
-//
-//  Placeholder for the future Saved Places view model.
-//
 
 import SwiftUI
 import Observation
@@ -11,5 +8,14 @@ import Observation
 @MainActor
 @Observable
 final class SavedViewModel {
-    // Intentionally empty for now.
+
+    private let placeStore = PlaceStore.shared
+
+    // Derived from PlaceStore — observation chain tracks savedPlaceIDs + communityPlaces.
+    var savedPlaces: [CommunityPlace] { placeStore.savedPlaces }
+    var isLoading: Bool { placeStore.isLoading }
+
+    func removeSaved(_ place: CommunityPlace) {
+        Task { await placeStore.toggleSave(place) }
+    }
 }

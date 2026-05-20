@@ -1,7 +1,6 @@
 //
 //  SavedView.swift
 //  FocusCorner
-//
 
 import SwiftUI
 
@@ -9,44 +8,7 @@ struct SavedView: View {
 
     @State private var viewModel = SavedViewModel()
     @State private var hasAppeared = false
-
-    private struct SavedSpot: Identifiable {
-        let id = UUID()
-        let name: String
-        let tag: String
-        let rating: String
-        let gradient: LinearGradient
-    }
-
-    private let spots: [SavedSpot] = [
-        SavedSpot(
-            name: "Arabica Co.",
-            tag: "Coffee · Quiet",
-            rating: "4.9",
-            gradient: LinearGradient(
-                colors: [AppColors.caramel, AppColors.coffeeBrown],
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            )
-        ),
-        SavedSpot(
-            name: "The Study Room",
-            tag: "Library · Study",
-            rating: "4.7",
-            gradient: LinearGradient(
-                colors: [AppColors.warmSand, AppColors.caramel.opacity(0.7)],
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            )
-        ),
-        SavedSpot(
-            name: "Mellow Pages",
-            tag: "Bookstore · Cozy",
-            rating: "4.8",
-            gradient: LinearGradient(
-                colors: [AppColors.lightCaramel, AppColors.caramel],
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            )
-        ),
-    ]
+    @State private var selectedPlace: CommunityPlace? = nil
 
     var body: some View {
         ZStack {
@@ -57,7 +19,9 @@ struct SavedView: View {
                 VStack(alignment: .leading, spacing: AppSpacing.xl) {
                     headerRow
                     savedList
-                    emptyStateHint
+                    if viewModel.savedPlaces.isEmpty && !viewModel.isLoading {
+                        emptyStateHint
+                    }
                 }
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.top, AppSpacing.lg)
@@ -70,6 +34,9 @@ struct SavedView: View {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
                 hasAppeared = true
             }
+        }
+        .sheet(item: $selectedPlace) { place in
+            PlaceDetailView(place: place)
         }
     }
 
@@ -86,7 +53,7 @@ struct SavedView: View {
                     .foregroundStyle(AppColors.textSecondary)
             }
             Spacer()
-            Text("\(spots.count) spots")
+            Text("\(viewModel.savedPlaces.count) places")
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textSecondary)
                 .padding(.horizontal, AppSpacing.sm)
@@ -102,19 +69,32 @@ struct SavedView: View {
 
     private var savedList: some View {
         VStack(spacing: 0) {
-            ForEach(Array(spots.enumerated()), id: \.element.id) { index, spot in
-                savedRow(spot)
-                    .opacity(hasAppeared ? 1 : 0)
-                    .offset(y: hasAppeared ? 0 : 14)
-                    .animation(
-                        .spring(response: 0.55, dampingFraction: 0.8).delay(Double(index) * 0.08 + 0.12),
-                        value: hasAppeared
-                    )
+            if viewModel.isLoading && viewModel.savedPlaces.isEmpty {
+                ProgressView()
+                    .tint(AppColors.coffeeBrown)
+                    .padding(AppSpacing.xl)
+                    .frame(maxWidth: .infinity)
+            } else {
+                ForEach(Array(viewModel.savedPlaces.enumerated()), id: \.element.id) { index, place in
+                    Button {
+                        selectedPlace = place
+                    } label: {
+                        savedRow(place, index: index)
+                    }
+                    .buttonStyle(.plain)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            viewModel.removeSaved(place)
+                        } label: {
+                            Label("Remove", systemImage: "bookmark.slash")
+                        }
+                    }
 
-                if index < spots.count - 1 {
-                    Divider()
-                        .background(AppColors.warmSand.opacity(0.5))
-                        .padding(.leading, 72)
+                    if index < viewModel.savedPlaces.count - 1 {
+                        Divider()
+                            .background(AppColors.warmSand.opacity(0.5))
+                            .padding(.leading, 72)
+                    }
                 }
             }
         }
@@ -129,47 +109,69 @@ struct SavedView: View {
         .shadow(color: AppColors.coffeeBrown.opacity(0.05), radius: 14, x: 0, y: 6)
     }
 
-    private func savedRow(_ spot: SavedSpot) -> some View {
+    private func savedRow(_ place: CommunityPlace, index: Int) -> some View {
         HStack(spacing: AppSpacing.md) {
-            RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
-                .fill(spot.gradient)
-                .frame(width: 52, height: 52)
+            Group {
+                if let urlString = place.imageURLs.first, let url = URL(string: urlString) {
+                    AsyncImage(url: url) { phase in
+                        if case .success(let img) = phase {
+                            img.resizable().scaledToFill()
+                        } else {
+                            rowGradient(index: index)
+                        }
+                    }
+                } else {
+                    rowGradient(index: index)
+                }
+            }
+            .frame(width: 52, height: 52)
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous))
+            .overlay {
+                if place.imageURLs.isEmpty {
+                    Image(systemName: "cup.and.saucer.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+            }
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(spot.name)
+                Text(place.name)
                     .font(AppTypography.button)
                     .foregroundStyle(AppColors.textPrimary)
-                Text(spot.tag)
+                    .lineLimit(1)
+                Text(place.locationLabel.isEmpty ? (place.vibeTags.first ?? "Community place") : place.locationLabel)
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
+                    .lineLimit(1)
             }
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 6) {
-                HStack(spacing: 3) {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(AppColors.caramel)
-                    Text(spot.rating)
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.textPrimary)
-                }
-                Button {
-                    // toggle saved
-                } label: {
-                    Image(systemName: "bookmark.fill")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(AppColors.caramel)
-                }
-                .buttonStyle(.plain)
+            Button {
+                viewModel.removeSaved(place)
+            } label: {
+                Image(systemName: "bookmark.fill")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(AppColors.caramel)
             }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, AppSpacing.md)
         .padding(.vertical, AppSpacing.md)
     }
 
-    // MARK: - Empty state hint
+    private func rowGradient(index: Int) -> some View {
+        LinearGradient(
+            colors: [
+                index.isMultiple(of: 2) ? AppColors.caramel : AppColors.lightCaramel,
+                index.isMultiple(of: 3) ? AppColors.coffeeBrown : AppColors.caramel
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    // MARK: - Empty state
 
     private var emptyStateHint: some View {
         VStack(spacing: AppSpacing.sm) {
