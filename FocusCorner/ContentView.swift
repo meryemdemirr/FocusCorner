@@ -2,20 +2,15 @@
 //  ContentView.swift
 //  FocusCorner
 //
-//  Created by Meryem Demir on 19.05.2026.
+//  Top-level entry point. Delegates to RootView which manages the app flow
+//  (splash → onboarding → auth → main).
 //
 
 import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
+        RootView()
     }
 }
 

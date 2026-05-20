@@ -1,0 +1,76 @@
+/*
+  Localizable.strings (English)
+  FocusCorner
+*/
+
+// MARK: - Onboarding
+
+"onboarding.page1.title" = "Discover Cozy Workspaces";
+"onboarding.page1.description" = "Explore aesthetic cafes and inspiring places designed for focus and productivity.";
+
+"onboarding.page2.title" = "Find Your Perfect Atmosphere";
+"onboarding.page2.description" = "Filter places by WiFi quality, noise level, comfort, and workspace vibe.";
+
+"onboarding.page3.title" = "Join the Focus Community";
+"onboarding.page3.description" = "Save favorite spots, share reviews, and discover productive spaces together.";
+
+// MARK: - Onboarding Actions
+
+"onboarding.action.skip" = "Skip";
+"onboarding.action.next" = "Next";
+"onboarding.action.getStarted" = "Get Started";
+
+// MARK: - Accessibility
+
+"onboarding.a11y.pageIndicator" = "Page %1$d of %2$d";
+
+// MARK: - Splash
+
+"splash.appName" = "Focus Corner";
+"splash.tagline" = "Your cozy corner for focus.";
+
+// MARK: - Authentication (placeholder)
+
+"auth.title" = "Welcome Back";
+"auth.subtitle" = "Sign in to discover cafes made for focus.";
+"auth.continue" = "Continue";
+"auth.placeholderNotice" = "Authentication coming soon — tap Continue to explore.";
+
+// MARK: - Tabs
+
+"tabs.home" = "Home";
+"tabs.map" = "Map";
+"tabs.addPlace" = "Add";
+"tabs.saved" = "Saved";
+"tabs.profile" = "Profile";
+
+// MARK: - Home
+
+"home.title" = "Good morning";
+"home.subtitle" = "Discover your next favorite spot to focus today.";
+"home.placeholder" = "Curated cafes and workspaces will appear here.";
+
+// MARK: - Map
+
+"map.title" = "Nearby Corners";
+"map.subtitle" = "Browse cozy workspaces around you.";
+"map.placeholder" = "An interactive map will live here soon.";
+
+// MARK: - Add Place
+
+"addPlace.title" = "Add a Place";
+"addPlace.subtitle" = "Help the community find their next favorite corner.";
+"addPlace.placeholder" = "The submission form will appear here.";
+
+// MARK: - Saved
+
+"saved.title" = "Saved Spots";
+"saved.subtitle" = "Your collection of favorite places to focus.";
+"saved.placeholder" = "Spots you save will be gathered here.";
+
+// MARK: - Profile
+
+"profile.title" = "Your Profile";
+"profile.subtitle" = "Manage your account and preferences.";
+"profile.placeholder" = "Profile, preferences and stats will appear here.";
+"profile.signOut" = "Sign Out";

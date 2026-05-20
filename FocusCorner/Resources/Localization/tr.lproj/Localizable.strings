@@ -1,0 +1,76 @@
+/*
+  Localizable.strings (Turkish)
+  FocusCorner
+*/
+
+// MARK: - Onboarding
+
+"onboarding.page1.title" = "Sıcacık Çalışma Alanlarını Keşfet";
+"onboarding.page1.description" = "Odaklanmak ve üretken olmak için tasarlanmış estetik kafeleri ve ilham veren mekânları keşfet.";
+
+"onboarding.page2.title" = "Sana Uygun Atmosferi Bul";
+"onboarding.page2.description" = "Mekânları WiFi kalitesi, ses seviyesi, konfor ve çalışma atmosferine göre filtrele.";
+
+"onboarding.page3.title" = "Odak Topluluğuna Katıl";
+"onboarding.page3.description" = "Favori mekânlarını kaydet, yorumlarını paylaş ve üretken alanları birlikte keşfedin.";
+
+// MARK: - Onboarding Actions
+
+"onboarding.action.skip" = "Atla";
+"onboarding.action.next" = "İleri";
+"onboarding.action.getStarted" = "Hemen Başla";
+
+// MARK: - Accessibility
+
+"onboarding.a11y.pageIndicator" = "Sayfa %1$d / %2$d";
+
+// MARK: - Splash
+
+"splash.appName" = "Focus Corner";
+"splash.tagline" = "Odaklanmak için sıcacık köşen.";
+
+// MARK: - Authentication (placeholder)
+
+"auth.title" = "Tekrar Hoş Geldin";
+"auth.subtitle" = "Odaklanmak için yaratılmış kafeleri keşfetmek için giriş yap.";
+"auth.continue" = "Devam Et";
+"auth.placeholderNotice" = "Kimlik doğrulama yakında — keşfetmek için Devam Et'e dokun.";
+
+// MARK: - Tabs
+
+"tabs.home" = "Ana Sayfa";
+"tabs.map" = "Harita";
+"tabs.addPlace" = "Ekle";
+"tabs.saved" = "Kaydedilen";
+"tabs.profile" = "Profil";
+
+// MARK: - Home
+
+"home.title" = "Günaydın";
+"home.subtitle" = "Bugün odaklanacağın yeni favori mekânını keşfet.";
+"home.placeholder" = "Seçilmiş kafeler ve çalışma alanları burada görünecek.";
+
+// MARK: - Map
+
+"map.title" = "Yakındaki Köşeler";
+"map.subtitle" = "Çevrendeki sıcacık çalışma alanlarına göz at.";
+"map.placeholder" = "Etkileşimli harita yakında burada olacak.";
+
+// MARK: - Add Place
+
+"addPlace.title" = "Yeni Mekân Ekle";
+"addPlace.subtitle" = "Topluluğun yeni favori köşesini bulmasına yardım et.";
+"addPlace.placeholder" = "Mekân ekleme formu burada görünecek.";
+
+// MARK: - Saved
+
+"saved.title" = "Kaydettiklerin";
+"saved.subtitle" = "Odaklanmak için seçtiğin favori mekânların.";
+"saved.placeholder" = "Kaydettiğin mekânlar burada toplanacak.";
+
+// MARK: - Profile
+
+"profile.title" = "Profilin";
+"profile.subtitle" = "Hesabını ve tercihlerini yönet.";
+"profile.placeholder" = "Profil bilgilerin, tercihlerin ve istatistiklerin burada görünecek.";
+"profile.signOut" = "Çıkış Yap";
